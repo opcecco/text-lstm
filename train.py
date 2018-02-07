@@ -1,84 +1,75 @@
 #!/usr/bin/env python3
 
-import sys, random
+import sys, json
 import numpy as np
 
 from keras.models import Sequential
-from keras.layers import Input, LSTM, Dense
+from keras.layers import LSTM, Dense
+from keras.optimizers import RMSprop
 
 
-print('Parsing dataset...')
-
-with open(sys.argv[1], 'r') as input_file:
-	dataset = list(input_file.read())
+def train(dataset, sequence_length = 50, step = 50, units = 128, layers = 2, epochs = 50, batch_size = 50, learning_rate = 0.002, implementation = 1, verbose = 0):
 	
-vocab = sorted(list(set(dataset)))
-index_to_char = dict(enumerate(vocab))
-char_to_index = dict((index_to_char[i], i,) for i in index_to_char)
-
-sequence_length = 50
-sequences, output_characters = [], []
-
-for i in range(0, len(dataset) - sequence_length, sequence_length):
-	sequences.append(dataset[i:i + sequence_length])
-	output_characters.append(dataset[i + sequence_length])
-	
-print('Vectorizing...')
-
-x = np.zeros((len(sequences), sequence_length, len(vocab)), dtype = np.bool)
-for s, seq in enumerate(sequences):
-	for c, char in enumerate(seq):
-		x[s, c, char_to_index[char]] = 1
+	if verbose > 0:
+		print('Parsing dataset')
 		
-y = np.zeros((len(sequences), len(vocab)), dtype = np.bool)
-for o, out in enumerate(output_characters):
-	y[o, char_to_index[out]] = 1
+	vocab = sorted(list(set(list(dataset))))
+	index_to_char = dict(enumerate(vocab))
+	char_to_index = dict((index_to_char[i], i,) for i in index_to_char)
 	
-print('Building model...')
-
-layers = 3
-units = 256
-
-model = Sequential()
-model.add(LSTM(units, unroll = True, return_sequences = True, input_shape = (sequence_length, len(vocab))))
-
-for i in range(layers - 2):
-	model.add(LSTM(units, unroll = True, return_sequences = True))
+	sequences, output_characters = [], []
 	
-model.add(LSTM(units, unroll = True))
-# model.add(Dense(units, activation = 'relu'))
-model.add(Dense(len(vocab), activation = 'softmax'))
-
-model.compile(loss = 'categorical_crossentropy', optimizer = 'rmsprop', metrics = ['accuracy'])
-
-print('Training...')
-
-model.fit(x, y, epochs = 50, batch_size = 50, verbose = 1)
-
-
-
-
-sample = 'ROMEO'
-pattern = list(sample)
-
-print('Generating...')
-
-for i in range(500):
-	
-	x_sample = np.zeros((1, sequence_length, len(vocab)), dtype = np.bool)
-	for c, char in enumerate(pattern):
-		x_sample[0, c + sequence_length - len(pattern), char_to_index[char]] = 1
+	for i in range(0, len(dataset) - sequence_length, step):
+		sequences.append(dataset[i:i + sequence_length])
+		output_characters.append(dataset[i + sequence_length])
 		
-	preds = model.predict(x_sample)[0]
-	preds = np.asarray(preds).astype('float64')
-	preds = preds / np.sum(preds)
-	
-	choice = np.random.multinomial(1, preds, 1)
-	index = np.argmax(choice)
-	char = index_to_char[index]
-	
-	sample += char
-	pattern.append(char)
-	pattern = pattern[-40:]
+	if verbose > 0:
+		print('Vectorizing')
 		
-print(sample)
+	x = np.zeros((len(sequences), sequence_length, len(vocab)), dtype = np.bool)
+	for s, seq in enumerate(sequences):
+		for c, char in enumerate(seq):
+			x[s, c, char_to_index[char]] = 1
+			
+	y = np.zeros((len(sequences), len(vocab)), dtype = np.bool)
+	for o, out in enumerate(output_characters):
+		y[o, char_to_index[out]] = 1
+		
+	if verbose > 0:
+		print('Building model')
+		
+	model = Sequential()
+	model.add(LSTM(units, implementation = implementation, unroll = True, return_sequences = True, input_shape = (sequence_length, len(vocab))))
+	
+	for i in range(layers - 1):
+		model.add(LSTM(units, implementation = implementation, unroll = True, return_sequences = True if i < layers - 2 else False))
+		
+	model.add(Dense(len(vocab), activation = 'softmax'))
+	
+	model.compile(loss = 'categorical_crossentropy', optimizer = RMSprop(lr = learning_rate), metrics = ['accuracy'])
+	
+	if verbose > 0:
+		print('Training')
+		
+	config = {'vocab': vocab, 'sequence_length': sequence_length}
+	model.fit(x, y, epochs = epochs, batch_size = batch_size, verbose = verbose)
+	
+	return model, config
+	
+	
+def main():
+	
+	with open(sys.argv[1], 'r') as input_file:
+		dataset = input_file.read()
+		
+	model, config = train(dataset, sequence_length = 50, step = 50, units = 128, layers = 3, epochs = 5, batch_size = 50, learning_rate = 0.002, implementation = 1, verbose = 1)
+	
+	with open('config.json', 'w') as vocab_file:
+		vocab_file.write(json.dumps(config))
+		
+	model.save('model.h5')
+	
+	
+if __name__ == '__main__':
+	main()
+	
