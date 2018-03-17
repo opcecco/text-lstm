@@ -49,7 +49,7 @@ def main():
 		
 	model = load_model('model.h5')
 	
-	text = sample(model, config, 1000, prime = ' ')
+	text = sample(model, config, int(sys.argv[2]), prime = sys.argv[1])
 	print(text)
 	
 	

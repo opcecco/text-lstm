@@ -13,7 +13,7 @@ import tensorflow as tf
 Train an LSTM model to generate text
 Returns a Keras model object and a configuration dict
 """
-def train(dataset, sequence_length = 50, step = 50, units = 128, layers = 2, epochs = 50, batch_size = 50, learning_rate = 0.001, decay = 0.00, implementation = 1, verbose = 0):
+def train(dataset, sequence_length = 50, step = 50, units = 128, layers = 2, epochs = 50, batch_size = 50, learning_rate = 0.001, implementation = 1, verbose = 0):
 	
 	if verbose > 0:
 		print('Parsing dataset')
@@ -56,8 +56,7 @@ def train(dataset, sequence_length = 50, step = 50, units = 128, layers = 2, epo
 		
 	model.add(Dense(len(vocab), activation = 'softmax'))
 	
-	print(decay)
-	model.compile(loss = 'categorical_crossentropy', optimizer = TFOptimizer(tf.train.RMSPropOptimizer(learning_rate = learning_rate, decay = decay)), metrics = ['accuracy'])
+	model.compile(loss = 'categorical_crossentropy', optimizer = TFOptimizer(tf.train.RMSPropOptimizer(learning_rate)), metrics = ['accuracy'])
 	
 	if verbose > 0:
 		print('Training')
@@ -79,7 +78,7 @@ def main():
 		dataset = input_file.read()
 		
 	# Train the model
-	model, config = train(dataset, sequence_length = 50, step = 50, units = 800, layers = 3, epochs = 50, batch_size = 50, learning_rate = 0.001, decay = 0.03, implementation = 2, verbose = 1)
+	model, config = train(dataset, sequence_length = 50, step = 50, units = 512, layers = 3, epochs = 50, batch_size = 50, learning_rate = 0.001, implementation = 2, verbose = 1)
 	
 	# Save the model and configuration settings to disk
 	with open('config.json', 'w') as vocab_file:
