@@ -29,16 +29,17 @@ def sample(model, config, samples, prime = ' '):
 		
 		# preds = np.exp(np.log(preds) / diversity)
 		preds = preds / np.sum(preds)
-		
 		choice = np.random.multinomial(1, preds, 1)
+		
 		index = np.argmax(choice)
+		# index = np.argmax(preds)
 		char = index_to_char[index]
 		
 		sample += char
 		pattern.append(char)
 		pattern = pattern[-sequence_length:]
 		
-	print(sample)
+	return sample
 	
 	
 def main():
@@ -48,7 +49,8 @@ def main():
 		
 	model = load_model('model.h5')
 	
-	sample(model, config, 500, prime = ' ')
+	text = sample(model, config, 1000, prime = ' ')
+	print(text)
 	
 	
 if __name__ == '__main__':
