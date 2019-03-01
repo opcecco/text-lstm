@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 
-import sys, json
+import sys, os, json
 import numpy as np
 
 from keras.models import Sequential
 from keras.layers import LSTM, Dense, Dropout
-import tensorflow as tf
+from keras.optimizers import Adam, RMSprop
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 
 
 """
 Train an LSTM model to generate text
 Returns a Keras model object and a configuration dict
 """
-def train(dataset, sequence_length, step, units, layers, dropout, epochs, batch_size):
+def train(dataset, sequence_length, step, units, layers, dropout, epochs, batch_size, learning_rate, save_path):
 
 	print('Parsing dataset')
+
+	# Massage dataset
+	dataset = dataset.lower()
 
 	# Parse every character from the dataset
 	vocab = sorted(list(set(list(dataset))))
@@ -27,6 +31,8 @@ def train(dataset, sequence_length, step, units, layers, dropout, epochs, batch_
 	for i in range(0, len(dataset) - sequence_length, step):
 		sequences.append(dataset[i:i + sequence_length])
 		output_characters.append(dataset[i + sequence_length])
+
+	print('Samples:', len(output_characters))
 
 	print('Vectorizing')
 
@@ -43,27 +49,34 @@ def train(dataset, sequence_length, step, units, layers, dropout, epochs, batch_
 
 	print('Building model')
 
-	# Build the model according to parameters
+	# Build the model according to parameters  unroll = True, implementation = 2,
 	model = Sequential()
-	model.add(LSTM(units, return_sequences = True, input_shape = (sequence_length, len(vocab))))
+	model.add(LSTM(units, return_sequences = bool(layers > 1), input_shape = (sequence_length, len(vocab))))
 	model.add(Dropout(dropout))
 
-	for i in range(layers - 1):
-		model.add(LSTM(units, return_sequences = bool(i < layers - 2)))
+	for i in range(layers - 2, -1, -1):
+		model.add(LSTM(units, return_sequences = bool(i)))
 		model.add(Dropout(dropout))
 
 	model.add(Dense(len(vocab), activation = 'softmax'))
 
-	model.compile(loss = 'categorical_crossentropy', optimizer = 'adam', metrics = ['accuracy'])
+	model.compile(loss = 'categorical_crossentropy', optimizer = Adam(lr = learning_rate, decay = 0.03), metrics = ['accuracy'])
 
 	print('Training')
 
 	# Train the model
 	config = {'vocab': vocab, 'sequence_length': sequence_length}
-	model.summary()
-	model.fit(x, y, epochs = epochs, batch_size = batch_size, validation_split = 0.01, shuffle = True, verbose = 1)
+	with open(os.path.join(save_path, 'config.json'), 'w') as vocab_file:
+		vocab_file.write(json.dumps(config))
 
-	return model, config
+	print(model.summary())
+
+	model.fit(x, y, epochs = epochs, batch_size = batch_size, shuffle = True, verbose = 1,
+		callbacks = [
+			ModelCheckpoint(filepath = os.path.join(save_path, 'model.hdf5'), monitor = 'loss', verbose = 1, save_best_only = True),
+			ReduceLROnPlateau(monitor = 'loss', factor = 0.5, patience = 1, verbose = 1),
+		]
+	)
 
 
 """
@@ -75,24 +88,22 @@ def main():
 	with open(sys.argv[1], 'r') as input_file:
 		dataset = input_file.read()
 
+	save_path = sys.argv[2]
+	if not os.path.isdir(save_path):
+		os.mkdir(save_path)
 
 	# Params
-	sequence_length = 50
-	step            = 50
-	units           = 400
+	sequence_length = 100
+	step            = 20
+	units           = 256
 	layers          = 2
-	dropout         = 0.20
+	dropout         = 0.00
 	epochs          = 100
-	batch_size      = 50
+	batch_size      = 100
+	learning_rate   = 0.002
 
 	# Train the model
-	model, config = train(dataset, sequence_length, step, units, layers, dropout, epochs, batch_size)
-
-	# Save the model and configuration settings to disk
-	with open('config.json', 'w') as vocab_file:
-		vocab_file.write(json.dumps(config))
-
-	model.save('model.h5')
+	train(dataset, sequence_length, step, units, layers, dropout, epochs, batch_size, learning_rate, save_path)
 
 
 if __name__ == '__main__':
