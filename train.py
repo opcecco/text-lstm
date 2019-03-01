@@ -51,13 +51,12 @@ def train(dataset, sequence_length, step, units, layers, dropout, epochs, batch_
 
 	# Build the model according to parameters  unroll = True, implementation = 2,
 	model = Sequential()
-	model.add(LSTM(units, return_sequences = bool(layers > 1), input_shape = (sequence_length, len(vocab))))
+	model.add(LSTM(128, return_sequences = True, input_shape = (sequence_length, len(vocab))))
+	model.add(LSTM(128, return_sequences = True))
+	model.add(LSTM(256))
 	model.add(Dropout(dropout))
-
-	for i in range(layers - 2, -1, -1):
-		model.add(LSTM(units, return_sequences = bool(i)))
-		model.add(Dropout(dropout))
-
+	model.add(Dense(256, activation = 'selu'))
+	model.add(Dense(128, activation = 'selu'))
 	model.add(Dense(len(vocab), activation = 'softmax'))
 
 	model.compile(loss = 'categorical_crossentropy', optimizer = Adam(lr = learning_rate, decay = 0.03), metrics = ['accuracy'])
@@ -93,13 +92,13 @@ def main():
 		os.mkdir(save_path)
 
 	# Params
-	sequence_length = 100
+	sequence_length = 20
 	step            = 20
-	units           = 256
-	layers          = 2
-	dropout         = 0.00
-	epochs          = 100
-	batch_size      = 100
+	units           = 128
+	layers          = 3
+	dropout         = 0.50
+	epochs          = 128
+	batch_size      = 128
 	learning_rate   = 0.002
 
 	# Train the model
