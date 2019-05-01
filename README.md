@@ -30,10 +30,15 @@ After some training on a set of IMDB movie titles and summaries, I was able to g
 The entire output can be found in `generated-movies.txt`. Here are just a few samples.
 
 >Title: Outlaws of the Law
+>
 >Summary: This leads a lighthouse in the village trader and seductive Boyd Donna (Telegraph) and to pick a drink to Grand Carlo with a ship-hall performance.
 >
+>
 >Title: The First Chance
+>
 >Summary: Summoned, a young man from the days have married Jo arrive at the young ward of the robberies for the mockery and tells his father that he has not lost anything to see her. He doesn't know, through all works, takes a slide, but it's part of a priest.
 >
+>
 >Title: The Girl from Youth
+>
 >Summary: Businessman Lisha Thanya throws a reward for exciting on a swindle and blood and saloonkeeper. Lighting in the gang, Lindsay with the commander of an Italian pretty young couple, who is being not only a jealous for some clothes, the old English valley. Kitty now has displayed Motion Arnold's relationship with Raolf. With this football player, Rodney Steele, posing as the Inspector King of San Francisco, Margaret murders him. Complications ensue.
